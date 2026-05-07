@@ -5,17 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Devine le parti</title>
   <meta name="description" content="Saurez-vous deviner le parti d'un député, sénateur ou eurodéputé français à partir de sa photo ?">
+  <meta property="og:title" content="Devine le parti">
+  <meta property="og:description" content="Reconnaissez-vous nos politiques ? Score, classement mondial et défis quotidiens.">
+  <meta property="og:type" content="website">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
-    <h1 class="logo">Devine le parti<a class="nav" href="stats.html">stats →</a></h1>
+    <h1 class="logo">Devine le parti<a class="nav" href="stats.html">classement →</a></h1>
     <div class="score">
       <div class="metric"><span>Score</span><b id="m-score">0 / 0</b></div>
       <div class="metric"><span>Série</span><b id="m-streak">0</b></div>
       <div class="metric"><span>Record</span><b id="m-best">0</b></div>
+      <div class="metric metric-rank"><span>Rang</span><b id="m-rank">—</b></div>
+      <button id="m-name"  class="ghost" title="Définir mon pseudo">Pseudo</button>
       <button id="m-share" class="ghost" title="Partager mon score">Partager</button>
-      <button id="m-reset" class="ghost" title="Tout remettre à zéro">Reset</button>
+      <button id="m-reset" class="ghost" title="Effacer l'historique local">Reset</button>
     </div>
   </header>
 
@@ -47,11 +52,12 @@
       </section>
     </article>
 
-    <p class="hint" id="hint">Chargement des candidats…</p>
+    <p class="hint" id="hint">Chargement…</p>
 
     <section class="board" id="board" hidden>
-      <h2>Vos meilleurs enchaînements</h2>
+      <h2>Classement mondial <a href="stats.html" class="board-more">tout voir →</a></h2>
       <ol id="board-list"></ol>
+      <p class="board-me" id="board-me" hidden></p>
     </section>
 
     <section class="recent" id="recent" hidden>
@@ -66,6 +72,20 @@
       Photos servies directement par leurs sites officiels.
     </footer>
   </main>
+
+  <!-- Pseudo picker -->
+  <div class="modal" id="name-dlg" hidden role="dialog" aria-labelledby="name-title">
+    <div class="modal-card">
+      <button class="modal-x" id="name-close" aria-label="Fermer">×</button>
+      <h2 class="modal-title" id="name-title">Choisissez un pseudo</h2>
+      <p class="modal-lead">Apparaîtra dans le classement mondial. Vous pouvez le changer à tout moment.</p>
+      <input id="name-input" class="modal-input" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="Votre pseudo (2-24 caractères)">
+      <div class="modal-actions">
+        <button class="btn-primary" id="name-save">Enregistrer</button>
+        <button class="ghost"        id="name-skip">Plus tard</button>
+      </div>
+    </div>
+  </div>
 
   <script src="config.js"></script>
   <script src="game.js"></script>

@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Stats · Devine le parti</title>
+  <title>Classement · Devine le parti</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    .page.stats { max-width: 720px; }
+    .page.stats { max-width: 760px; }
     .panel {
       background: var(--surface);
       border: 1px solid var(--hairline);
@@ -19,76 +19,38 @@
       gap: .65rem;
       margin: 1.4rem 0 1.8rem;
     }
-    .kpi {
-      background: var(--surface);
-      border: 1px solid var(--hairline);
-      border-radius: 12px;
-      padding: .85rem 1rem;
+    .kpi { background: var(--surface); border: 1px solid var(--hairline); border-radius: 12px; padding: .85rem 1rem; }
+    .kpi small { font-size: .65rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+    .kpi b     { display: block; margin-top: .35rem; font-size: 1.7rem; font-weight: 800; letter-spacing: -.015em; font-variant-numeric: tabular-nums; }
+
+    h2.section { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 1.6rem 0 .7rem; }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 70px 70px 90px;
+      align-items: center;
+      gap: .6rem;
+      padding: .55rem .35rem;
+      font-variant-numeric: tabular-nums;
     }
-    .kpi small {
-      font-size: .65rem;
+    .lb-row + .lb-row { border-top: 1px solid #f0f0f3; }
+    .lb-row.head {
+      font-size: .68rem;
       letter-spacing: .07em;
       text-transform: uppercase;
       color: var(--muted);
       font-weight: 800;
+      padding: .35rem .35rem;
     }
-    .kpi b {
-      display: block;
-      margin-top: .35rem;
-      font-size: 1.7rem;
-      font-weight: 800;
-      letter-spacing: -0.015em;
-      font-variant-numeric: tabular-nums;
-    }
-    h2.section {
-      font-size: .76rem;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin: 1.6rem 0 .7rem;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: 200px 1fr 60px;
-      gap: .75rem;
-      align-items: center;
-      padding: .55rem 0;
-    }
-    .row + .row { border-top: 1px solid #f0f0f3; }
-    .label {
-      font-weight: 700;
-      font-size: .92rem;
-      display: flex;
-      align-items: center;
-      gap: .55rem;
-    }
-    .swatch {
-      width: 10px; height: 10px;
-      border-radius: 2px;
-      flex: 0 0 auto;
-    }
-    .track {
-      height: 9px;
-      background: #f0f0f3;
-      border-radius: 99px;
-      overflow: hidden;
-    }
-    .fill {
-      height: 100%;
-      border-radius: 99px;
-      transition: width .4s ease;
-    }
-    .pct {
-      font-variant-numeric: tabular-nums;
-      font-weight: 800;
-      text-align: right;
-      font-size: .92rem;
-    }
-    .empty {
-      color: var(--muted);
-      font-size: .9rem;
-      padding: .5rem 0;
-    }
+    .lb-row.me   { background: #fff5d6; border-radius: 8px; }
+    .lb-rank     { font-weight: 800; color: var(--muted); }
+    .lb-row.me .lb-rank { color: #856700; }
+    .lb-name     { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-best     { font-weight: 800; }
+    .lb-acc, .lb-attempts { color: var(--muted); font-weight: 600; }
+    .empty       { color: var(--muted); font-size: .9rem; padding: .5rem 0; }
+
+    .hero-line   { color: var(--muted); font-size: .92rem; margin: -.6rem 0 1rem; }
   </style>
 </head>
 <body>
@@ -103,108 +65,128 @@
     <div class="kpis">
       <div class="kpi"><small>Réponses</small><b id="k-attempts">0</b></div>
       <div class="kpi"><small>Réussite</small><b id="k-rate">—</b></div>
-      <div class="kpi"><small>Série actuelle</small><b id="k-streak">0</b></div>
       <div class="kpi"><small>Record</small><b id="k-best">0</b></div>
+      <div class="kpi"><small>Rang mondial</small><b id="k-rank">—</b></div>
     </div>
 
-    <h2 class="section">Tableau des records · top 10 enchaînements</h2>
-    <div class="panel" id="scoreboard"><p class="empty">Pas encore de manche terminée. Une manche est enregistrée dès que vous vous trompez.</p></div>
-
-    <h2 class="section">Réussite par parti</h2>
-    <div class="panel" id="byparty"><p class="empty">Pas encore de données — jouez quelques manches !</p></div>
+    <h2 class="section">Classement mondial · top 20</h2>
+    <p class="hero-line" id="lb-info">Chargement…</p>
+    <div class="panel" id="leaderboard"><p class="empty">Connexion au serveur…</p></div>
 
     <p class="legal">
-      Ces statistiques restent dans votre navigateur (<code>localStorage</code>).
-      Aucune donnée n'est envoyée à un serveur.
+      Le classement mondial est mis à jour toutes les 20 secondes. Le serveur
+      n'enregistre qu'un identifiant de session anonyme et un pseudo
+      facultatif. Aucune donnée personnelle n'est collectée.
     </p>
   </main>
 
+  <div class="toast" id="toast"></div>
+
+  <script src="config.js"></script>
   <script>
-    const COLORS = {
-      "Renaissance":            "#ECD42E",
-      "Rassemblement National": "#1D2D52",
-      "La France Insoumise":    "#D81E2D",
-      "Les Républicains":       "#0066CC",
-      "Parti Socialiste":       "#E92F58",
-      "Les Écologistes":        "#00B070",
-    };
+    const STATS_API = (window.DLP_CONFIG && window.DLP_CONFIG.STATS_API) || "";
+    const SESSION_ID = localStorage.getItem("dlp.session.v1") || "";
+    const NAME       = localStorage.getItem("dlp.name.v1")    || "";
 
-    const raw = (() => {
-      try { return JSON.parse(localStorage.getItem("dlp.state.v1")) || {}; }
-      catch { return {}; }
-    })();
+    const $ = id => document.getElementById(id);
 
-    const attempts = raw.attempts || 0;
-    const score    = raw.score    || 0;
-    document.getElementById("k-attempts").textContent = attempts;
-    document.getElementById("k-streak").textContent   = raw.streak || 0;
-    document.getElementById("k-best").textContent     = raw.best   || 0;
-    document.getElementById("k-rate").textContent     =
-      attempts ? Math.round(100 * score / attempts) + " %" : "—";
-
-    // ---- scoreboard (top 10) ----
-    const sb = document.getElementById("scoreboard");
-    const runs = (raw.runs || []).slice(0, 10);
-    if (runs.length) {
-      sb.innerHTML = "";
-      runs.forEach((r, i) => {
-        const d = new Date(r.ts);
-        const date = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-        const w = Math.min(100, r.length / 25 * 100);
-        const div = document.createElement("div");
-        div.className = "row";
-        div.innerHTML = `
-          <div class="label"><span class="rank">#${i+1}</span><b class="run-len"></b><span class="muted">d'affilée</span></div>
-          <div class="track"><div class="fill" style="width:${w}%;background:#1a1a1a"></div></div>
-          <div class="pct"></div>`;
-        div.querySelector(".run-len").textContent = r.length;
-        div.querySelector(".pct").textContent = date;
-        sb.appendChild(div);
-      });
+    function flash(msg) {
+      const t = $("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(flash._t);
+      flash._t = setTimeout(() => t.classList.remove("show"), 2200);
     }
 
-    // ---- share button ----
-    document.getElementById("share").addEventListener("click", async () => {
-      const url = location.origin + location.pathname.replace(/[^/]+$/, "");
-      const lead = (raw.attempts || 0) > 0
-        ? `Devine le parti — ${raw.score || 0}/${raw.attempts || 0}, record ${raw.best || 0} d'affilée`
-        : "Devine le parti — saurez-vous reconnaître les politiques français ?";
-      if (navigator.share) {
-        try { await navigator.share({ title: "Devine le parti", text: lead, url }); return; }
-        catch (_) { /* user cancelled */ }
+    async function load() {
+      if (!STATS_API) {
+        $("lb-info").textContent = "Mode local — pas de classement global.";
+        $("leaderboard").innerHTML = "<p class='empty'>Configurez STATS_API dans config.js pour activer le classement.</p>";
+        return;
       }
+
+      // KPIs from /me
       try {
-        await navigator.clipboard.writeText(`${lead}\n${url}`);
-        alert("Score copié dans le presse-papier");
-      } catch (_) {
-        prompt("Copiez ce texte :", `${lead}\n${url}`);
+        const r = await fetch(`${STATS_API}/me?session=${encodeURIComponent(SESSION_ID)}`);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.me) {
+            $("k-attempts").textContent = d.me.total_attempts;
+            $("k-best").textContent     = d.me.best_streak;
+            $("k-rate").textContent     = d.me.total_attempts ? d.me.accuracy + " %" : "—";
+          }
+          if (d.rank && d.total_players) {
+            $("k-rank").textContent = `#${d.rank}`;
+            $("k-rank").title       = `${d.rank} sur ${d.total_players}`;
+          }
+        }
+      } catch (_) {}
+
+      // Leaderboard
+      try {
+        const r = await fetch(`${STATS_API}/leaderboard`);
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const d = await r.json();
+        const rows = d.rows || [];
+
+        $("lb-info").textContent = rows.length
+          ? `${(d.total_players || 0).toLocaleString("fr-FR")} joueur·euses ont déjà participé.`
+          : "Soyez le premier à inscrire votre nom au tableau !";
+
+        const root = $("leaderboard");
+        if (rows.length === 0) {
+          root.innerHTML = "<p class='empty'>Pas encore assez de parties (5 réponses minimum pour apparaître).</p>";
+          return;
+        }
+        root.innerHTML = "";
+        const head = document.createElement("div");
+        head.className = "lb-row head";
+        head.innerHTML = `
+          <span></span>
+          <span>Pseudo</span>
+          <span>Record</span>
+          <span>Réussite</span>
+          <span>Réponses</span>`;
+        root.appendChild(head);
+
+        for (const row of rows) {
+          const div = document.createElement("div");
+          div.className = "lb-row";
+          if (row.display_name === NAME && NAME) div.classList.add("me");
+          div.innerHTML = `
+            <span class="lb-rank"></span>
+            <span class="lb-name"></span>
+            <span class="lb-best"></span>
+            <span class="lb-acc"></span>
+            <span class="lb-attempts"></span>`;
+          div.querySelector(".lb-rank").textContent     = "#" + row.rank;
+          div.querySelector(".lb-name").textContent     = row.display_name;
+          div.querySelector(".lb-best").textContent     = row.best_streak;
+          div.querySelector(".lb-acc").textContent      = row.accuracy + " %";
+          div.querySelector(".lb-attempts").textContent = row.total_attempts;
+          root.appendChild(div);
+        }
+      } catch (e) {
+        $("lb-info").textContent = "Le classement n'est pas joignable pour l'instant.";
+        $("leaderboard").innerHTML = "<p class='empty'>Réessayez dans un instant.</p>";
       }
+    }
+
+    $("share").addEventListener("click", async () => {
+      const url = location.origin + location.pathname.replace(/[^/]+$/, "");
+      const best = $("k-best").textContent || "0";
+      const rank = $("k-rank").textContent || "—";
+      const acc  = $("k-rate").textContent || "—";
+      const text = `🇫🇷 Devine le parti — record ${best} d'affilée · réussite ${acc} · classement ${rank}`;
+      if (navigator.share) {
+        try { await navigator.share({ title: "Devine le parti", text, url }); return; } catch (_) {}
+      }
+      try { await navigator.clipboard.writeText(`${text}\n${url}`); flash("Copié — partagez-le !"); }
+      catch { prompt("Copiez :", `${text}\n${url}`); }
     });
 
-    // ---- réussite par parti ----
-    const byparty = raw.byParty || {};
-    const root = document.getElementById("byparty");
-    const parties = Object.keys(COLORS);
-
-    if (Object.values(byparty).reduce((a, b) => a + (b.seen || 0), 0) === 0) {
-      // leave the empty placeholder
-    } else {
-      root.innerHTML = "";
-      const ordered = parties
-        .map(p => ({ p, ...(byparty[p] || { seen: 0, ok: 0 }) }))
-        .sort((a, b) => (b.seen ? b.ok / b.seen : 0) - (a.seen ? a.ok / a.seen : 0));
-      for (const { p, seen, ok } of ordered) {
-        const pct = seen ? Math.round(100 * ok / seen) : 0;
-        const w = Math.min(100, pct / 80 * 100);
-        const div = document.createElement("div");
-        div.className = "row";
-        div.innerHTML = `
-          <div class="label"><span class="swatch" style="background:${COLORS[p]}"></span>${p}</div>
-          <div class="track"><div class="fill" style="width:${w}%;background:${COLORS[p]}"></div></div>
-          <div class="pct">${seen ? pct + " %" : "—"}</div>`;
-        root.appendChild(div);
-      }
-    }
+    load();
+    setInterval(load, 20_000);
   </script>
 </body>
 </html>

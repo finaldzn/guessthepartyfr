@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "worker/**"
+      - "candidates.json"
       - ".github/workflows/deploy-worker.yml"
   workflow_dispatch:
 
@@ -38,6 +39,14 @@ jobs:
           accountId:       ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
           command:          d1 execute dlp --remote --file schema.sql
+
+      - name: Seed candidates
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken:        ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId:       ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command:          d1 execute dlp --remote --file seed.sql
 
       - name: Deploy
         uses: cloudflare/wrangler-action@v3

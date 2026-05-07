@@ -81,6 +81,8 @@ body {
 }
 .metric b.pop { transform: scale(1.18); }
 
+.metric-rank b { color: #b07900; }
+
 .ghost {
   background: transparent;
   border: 1px solid var(--hairline);
@@ -93,9 +95,18 @@ body {
 }
 .ghost:hover { color: var(--text); border-color: #cfcfd6; }
 
-@media (max-width: 520px) {
-  .score { gap: .8rem; }
-  .ghost { display: none; }
+@media (max-width: 640px) {
+  .score    { gap: .55rem; }
+  .topbar   { padding: .65rem .75rem; flex-wrap: wrap; }
+  .metric span { font-size: .6rem; }
+  .metric b    { font-size: .92rem; }
+  /* On small screens keep score + streak + best + share, hide the rest. */
+  .metric-rank,
+  #m-reset,
+  #m-name { display: none; }
+  .ghost  { padding: .3rem .55rem; font-size: .72rem; }
+  .logo   { font-size: .98rem; }
+  .logo .nav { font-size: .72rem; }
 }
 
 /* ----- main column ----- */
@@ -369,7 +380,20 @@ body {
   color: var(--muted);
   margin: 0 0 .7rem;
   padding: 0 .25rem;
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
 }
+.board h2 .board-more {
+  margin-left: auto;
+  font-size: .72rem;
+  text-transform: none;
+  letter-spacing: .02em;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 700;
+}
+.board h2 .board-more:hover { color: var(--text); }
 .board ol {
   list-style: none;
   margin: 0;
@@ -377,40 +401,51 @@ body {
   display: flex;
   flex-direction: column;
   gap: .4rem;
-  counter-reset: rk;
 }
 .board .run {
-  counter-increment: rk;
   display: grid;
-  grid-template-columns: 26px 1fr auto auto;
+  grid-template-columns: 38px 1fr auto auto;
   align-items: baseline;
   gap: .55rem;
   padding: .55rem .85rem;
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: 12px;
+  font-variant-numeric: tabular-nums;
 }
-.board .run::before {
-  content: "#" counter(rk);
-  font-size: .72rem;
+.board .run.me {
+  background: #fff5d6;
+  border-color: #ead992;
+}
+.board .run-rank {
+  font-size: .8rem;
   font-weight: 800;
   color: var(--muted);
-  font-variant-numeric: tabular-nums;
+}
+.board .run.me .run-rank { color: #856700; }
+.board .run-name {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .board .run-len {
   font-weight: 800;
   font-size: 1.1rem;
-  font-variant-numeric: tabular-nums;
   letter-spacing: -.01em;
 }
 .board .run-label {
   color: var(--muted);
-  font-size: .85rem;
+  font-size: .82rem;
 }
 .board .run-when {
   color: var(--muted);
   font-size: .78rem;
-  font-variant-numeric: tabular-nums;
+}
+.board-me {
+  margin: .7rem .25rem 0;
+  font-size: .82rem;
+  color: var(--muted);
 }
 
 /* used on the stats page scoreboard rows */
@@ -422,6 +457,95 @@ body {
   margin-right: .2rem;
 }
 .muted { color: var(--muted); font-weight: 500; margin-left: .35rem; }
+
+/* ----- modal (name picker) ----- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,15,30,.55);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 1rem;
+  animation: fade .2s ease;
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.modal[hidden] { display: none; }
+
+.modal-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1.4rem 1.4rem 1.2rem;
+  width: min(420px, 100%);
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0,0,0,.25);
+  animation: rise .25s cubic-bezier(.2,.7,.2,1);
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modal-x {
+  position: absolute;
+  top: .55rem;
+  right: .8rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-x:hover { color: var(--text); }
+
+.modal-title {
+  margin: 0 0 .3rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+.modal-lead {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.45;
+}
+.modal-input {
+  width: 100%;
+  padding: .7rem .85rem;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 600;
+  background: #fbfbfd;
+}
+.modal-input:focus {
+  outline: 2px solid #b6c8e8;
+  border-color: transparent;
+  background: #fff;
+}
+.modal-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+}
+.btn-primary {
+  background: var(--text);
+  color: #fff;
+  border: 0;
+  padding: .55rem 1rem;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.btn-primary:hover { filter: brightness(1.1); }
 
 /* ----- toast ----- */
 
