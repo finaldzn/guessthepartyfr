@@ -14,6 +14,7 @@
       <div class="metric"><span>Score</span><b id="m-score">0 / 0</b></div>
       <div class="metric"><span>Série</span><b id="m-streak">0</b></div>
       <div class="metric"><span>Record</span><b id="m-best">0</b></div>
+      <button id="m-share" class="ghost" title="Partager mon score">Partager</button>
       <button id="m-reset" class="ghost" title="Tout remettre à zéro">Reset</button>
     </div>
   </header>
@@ -39,14 +40,26 @@
       </div>
 
       <div class="bar" id="bar"></div>
+
+      <section class="crowd" id="crowd" hidden>
+        <h3 class="crowd-title">Le public a répondu <span class="crowd-count" id="crowd-count"></span></h3>
+        <ul class="crowd-bars" id="crowd-bars"></ul>
+      </section>
     </article>
 
     <p class="hint" id="hint">Chargement des candidats…</p>
+
+    <section class="board" id="board" hidden>
+      <h2>Vos meilleurs enchaînements</h2>
+      <ol id="board-list"></ol>
+    </section>
 
     <section class="recent" id="recent" hidden>
       <h2>Derniers essais</h2>
       <ul id="recent-list"></ul>
     </section>
+
+    <div class="toast" id="toast"></div>
 
     <footer class="legal">
       Données ouvertes : Assemblée nationale (légis. 17), Sénat, Parlement européen.
@@ -54,6 +67,7 @@
     </footer>
   </main>
 
+  <script src="config.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

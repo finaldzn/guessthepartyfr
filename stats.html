@@ -94,6 +94,9 @@
 <body>
   <header class="topbar">
     <h1 class="logo">Devine le parti<a class="nav" href="index.html">jouer →</a></h1>
+    <div class="score">
+      <button id="share" class="ghost" title="Partager mes scores">Partager</button>
+    </div>
   </header>
 
   <main class="page stats">
@@ -103,6 +106,9 @@
       <div class="kpi"><small>Série actuelle</small><b id="k-streak">0</b></div>
       <div class="kpi"><small>Record</small><b id="k-best">0</b></div>
     </div>
+
+    <h2 class="section">Tableau des records · top 10 enchaînements</h2>
+    <div class="panel" id="scoreboard"><p class="empty">Pas encore de manche terminée. Une manche est enregistrée dès que vous vous trompez.</p></div>
 
     <h2 class="section">Réussite par parti</h2>
     <div class="panel" id="byparty"><p class="empty">Pas encore de données — jouez quelques manches !</p></div>
@@ -136,6 +142,46 @@
     document.getElementById("k-rate").textContent     =
       attempts ? Math.round(100 * score / attempts) + " %" : "—";
 
+    // ---- scoreboard (top 10) ----
+    const sb = document.getElementById("scoreboard");
+    const runs = (raw.runs || []).slice(0, 10);
+    if (runs.length) {
+      sb.innerHTML = "";
+      runs.forEach((r, i) => {
+        const d = new Date(r.ts);
+        const date = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+        const w = Math.min(100, r.length / 25 * 100);
+        const div = document.createElement("div");
+        div.className = "row";
+        div.innerHTML = `
+          <div class="label"><span class="rank">#${i+1}</span><b class="run-len"></b><span class="muted">d'affilée</span></div>
+          <div class="track"><div class="fill" style="width:${w}%;background:#1a1a1a"></div></div>
+          <div class="pct"></div>`;
+        div.querySelector(".run-len").textContent = r.length;
+        div.querySelector(".pct").textContent = date;
+        sb.appendChild(div);
+      });
+    }
+
+    // ---- share button ----
+    document.getElementById("share").addEventListener("click", async () => {
+      const url = location.origin + location.pathname.replace(/[^/]+$/, "");
+      const lead = (raw.attempts || 0) > 0
+        ? `Devine le parti — ${raw.score || 0}/${raw.attempts || 0}, record ${raw.best || 0} d'affilée`
+        : "Devine le parti — saurez-vous reconnaître les politiques français ?";
+      if (navigator.share) {
+        try { await navigator.share({ title: "Devine le parti", text: lead, url }); return; }
+        catch (_) { /* user cancelled */ }
+      }
+      try {
+        await navigator.clipboard.writeText(`${lead}\n${url}`);
+        alert("Score copié dans le presse-papier");
+      } catch (_) {
+        prompt("Copiez ce texte :", `${lead}\n${url}`);
+      }
+    });
+
+    // ---- réussite par parti ----
     const byparty = raw.byParty || {};
     const root = document.getElementById("byparty");
     const parties = Object.keys(COLORS);

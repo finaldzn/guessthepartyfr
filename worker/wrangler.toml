@@ -1,0 +1,9 @@
+name = "dlp-stats"
+main = "src/index.js"
+compatibility_date = "2026-05-01"
+
+# Replace database_id with the value printed by `wrangler d1 create dlp`.
+[[d1_databases]]
+binding       = "DB"
+database_name = "dlp"
+database_id   = "ca05bd1f-f4a9-43d1-baad-ec5fc67a7bc7"

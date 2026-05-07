@@ -1,0 +1,22 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Node (defensive — worker/.gitignore covers worker/node_modules already)
+node_modules/
+
+# Python build cache
+__pycache__/
+*.pyc
+.venv/
+
+# Local env / secrets
+.env
+.env.local
+*.local
+
+# Wrangler / Cloudflare
+.wrangler/

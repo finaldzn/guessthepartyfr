@@ -9,27 +9,58 @@ const PARTIES = [
   "Les Écologistes",
 ];
 
-const ADVANCE_DELAY_MS = 1900;
+const PARTY_COLORS = {
+  "Renaissance":            "#ECD42E",
+  "Rassemblement National": "#1D2D52",
+  "La France Insoumise":    "#D81E2D",
+  "Les Républicains":       "#0066CC",
+  "Parti Socialiste":       "#E92F58",
+  "Les Écologistes":        "#00B070",
+};
+
+const ADVANCE_DELAY_MS = 2400;
 const RECENT_KEEP      = 40;
 const STORAGE_KEY      = "dlp.state.v1";
+const SESSION_KEY      = "dlp.session.v1";
+
+const STATS_API = (window.DLP_CONFIG && window.DLP_CONFIG.STATS_API) || "";
+
+const SESSION_ID = (() => {
+  let s = localStorage.getItem(SESSION_KEY);
+  if (s) return s;
+  s = (crypto.randomUUID && crypto.randomUUID()) ||
+      "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+  try { localStorage.setItem(SESSION_KEY, s); } catch (_) {}
+  return s;
+})();
 
 const $ = (id) => document.getElementById(id);
 const ui = {
-  card:    $("card"),
-  imgA:    $("img-front"),
-  imgB:    $("img-back"),
-  cap:     $("caption"),
-  who:     $("who"),
-  meta:    $("meta"),
-  choices: $("choices"),
-  bar:     $("bar"),
-  hint:    $("hint"),
-  recent:  $("recent"),
-  list:    $("recent-list"),
-  score:   $("m-score"),
-  streak:  $("m-streak"),
-  best:    $("m-best"),
-  reset:   $("m-reset"),
+  card:     $("card"),
+  imgA:     $("img-front"),
+  imgB:     $("img-back"),
+  cap:      $("caption"),
+  who:      $("who"),
+  meta:     $("meta"),
+  choices:  $("choices"),
+  bar:      $("bar"),
+  hint:     $("hint"),
+  recent:   $("recent"),
+  list:     $("recent-list"),
+  board:    $("board"),
+  boardList:$("board-list"),
+  toast:    $("toast"),
+  crowd:    $("crowd"),
+  crowdBars:$("crowd-bars"),
+  crowdCnt: $("crowd-count"),
+  score:    $("m-score"),
+  streak:   $("m-streak"),
+  best:     $("m-best"),
+  share:    $("m-share"),
+  reset:    $("m-reset"),
 };
 
 let pool = [];
@@ -45,7 +76,7 @@ const state = restore();
 // ----- persistence -------------------------------------------------------
 
 function blank() {
-  return { score: 0, attempts: 0, streak: 0, best: 0, recent: [], byParty: {} };
+  return { score: 0, attempts: 0, streak: 0, best: 0, recent: [], runs: [], byParty: {} };
 }
 
 function restore() {
@@ -76,6 +107,64 @@ function paintScore(animate) {
     pop(ui.score);
     pop(ui.streak);
     if (state.streak > 0 && state.streak === state.best) pop(ui.best);
+  }
+}
+
+function paintBoard() {
+  const runs = (state.runs || []).slice(0, 3);
+  if (runs.length === 0) {
+    ui.board.hidden = true;
+    return;
+  }
+  ui.board.hidden = false;
+  ui.boardList.innerHTML = "";
+  for (const r of runs) {
+    const li = document.createElement("li");
+    li.className = "run";
+    const date = new Date(r.ts).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    li.innerHTML = `
+      <span class="run-len"></span>
+      <span class="run-label">d'affilée</span>
+      <span class="run-when"></span>`;
+    li.querySelector(".run-len").textContent  = r.length;
+    li.querySelector(".run-when").textContent = date;
+    ui.boardList.appendChild(li);
+  }
+}
+
+function recordRun() {
+  if (state.streak > 0) {
+    state.runs = state.runs || [];
+    state.runs.push({ length: state.streak, ts: Date.now() });
+    state.runs.sort((a, b) => b.length - a.length || b.ts - a.ts);
+    if (state.runs.length > 50) state.runs.length = 50;
+  }
+}
+
+function flashToast(msg) {
+  ui.toast.textContent = msg;
+  ui.toast.classList.add("show");
+  clearTimeout(flashToast._t);
+  flashToast._t = setTimeout(() => ui.toast.classList.remove("show"), 2200);
+}
+
+async function shareScore() {
+  const url  = location.origin + location.pathname.replace(/[^/]+$/, "");
+  const lead = state.attempts > 0
+    ? `Devine le parti — ${state.score}/${state.attempts}, record ${state.best} d'affilée`
+    : `Devine le parti — saurez-vous reconnaître les politiques français ?`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Devine le parti", text: lead, url });
+      return;
+    } catch (_) { /* user cancelled — fall through to clipboard */ }
+  }
+  try {
+    await navigator.clipboard.writeText(`${lead}\n${url}`);
+    flashToast("Score copié dans le presse-papier");
+  } catch (_) {
+    flashToast("Copie impossible — partagez l'URL manuellement");
   }
 }
 
@@ -153,12 +242,82 @@ function swapPortrait(src) {
     backEl.classList.add("shown");
     frontEl.classList.remove("shown");
     [frontEl, backEl] = [backEl, frontEl];
+    if (current) current.shownAt = performance.now();
   };
   backEl.onerror = () => {
     // Skip silently if a photo URL has gone stale.
     nextRound();
   };
   backEl.src = src;
+}
+
+// ----- crowd stats ------------------------------------------------------
+
+function logGuess(c, guessed) {
+  if (!STATS_API) return;
+  const dt = c.shownAt ? Math.round(performance.now() - c.shownAt) : null;
+  // fire-and-forget; never await, never throw
+  try {
+    fetch(STATS_API + "/guess", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        candidate_id:     c.id,
+        guessed_party:    guessed,
+        actual_party:     c.party,
+        session_id:       SESSION_ID,
+        time_to_guess_ms: dt,
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (_) {}
+}
+
+async function fetchBreakdown(c) {
+  if (!STATS_API) return null;
+  try {
+    const r = await fetch(`${STATS_API}/breakdown?id=${c.id}`, { cache: "no-store" });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (_) { return null; }
+}
+
+function renderCrowd(data, actual) {
+  if (!data || !data.total) {
+    ui.crowd.hidden = true;
+    return;
+  }
+  const total = data.total;
+  ui.crowdCnt.textContent = total === 1 ? "(1 vote)" : `(${total.toLocaleString("fr-FR")} votes)`;
+
+  const ranked = PARTIES
+    .map(p => ({ p, n: data.counts[p] || 0 }))
+    .sort((a, b) => b.n - a.n);
+
+  ui.crowdBars.innerHTML = "";
+  for (const { p, n } of ranked) {
+    const pct = Math.round((n / total) * 100);
+    const li  = document.createElement("li");
+    li.className = "cb" + (p === actual ? " cb-actual" : "");
+    li.innerHTML = `
+      <span class="cb-name"></span>
+      <span class="cb-track"><span class="cb-fill"></span></span>
+      <span class="cb-pct"></span>`;
+    li.querySelector(".cb-name").textContent = p;
+    li.querySelector(".cb-fill").style.width  = pct + "%";
+    li.querySelector(".cb-fill").style.background = PARTY_COLORS[p];
+    li.querySelector(".cb-pct").textContent  = pct + "%";
+    ui.crowdBars.appendChild(li);
+  }
+  ui.crowd.hidden = false;
+}
+
+async function showCrowdFor(c) {
+  ui.crowd.hidden = true;
+  const data = await fetchBreakdown(c);
+  // The user may have moved on to the next round before this resolves.
+  if (!current || current.id !== c.id || !answered) return;
+  renderCrowd(data, c.party);
 }
 
 function nextRound() {
@@ -168,6 +327,7 @@ function nextRound() {
 
   ui.cap.classList.remove("visible");
   ui.bar.classList.remove("run");
+  ui.crowd.hidden = true;
   for (const b of ui.choices.children) {
     b.disabled = false;
     b.classList.remove("was-correct", "was-wrong");
@@ -186,6 +346,7 @@ function answer(party) {
     state.streak += 1;
     if (state.streak > state.best) state.best = state.streak;
   } else {
+    recordRun();
     state.streak = 0;
   }
 
@@ -217,7 +378,12 @@ function answer(party) {
 
   paintScore(true);
   paintRecent();
+  paintBoard();
   persist();
+
+  // Crowd stats: log this guess and fetch the new breakdown for the card.
+  logGuess(current, party);
+  showCrowdFor(current);
 
   ui.bar.style.setProperty("--ms", ADVANCE_DELAY_MS + "ms");
   void ui.bar.offsetWidth;
@@ -257,12 +423,16 @@ ui.reset.addEventListener("click", () => {
   persist();
   paintScore(false);
   paintRecent();
+  paintBoard();
 });
+
+ui.share.addEventListener("click", shareScore);
 
 // ----- boot -----------------------------------------------------------
 
 (async function () {
   paintScore(false);
   paintRecent();
+  paintBoard();
   if (await loadPool()) nextRound();
 })();
