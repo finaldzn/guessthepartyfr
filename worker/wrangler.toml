@@ -6,4 +6,4 @@ compatibility_date = "2026-05-01"
 [[d1_databases]]
 binding       = "DB"
 database_name = "dlp"
-database_id   = "REPLACE_AFTER_d1_create"
+database_id   = "ca05bd1f-f4a9-43d1-baad-ec5fc67a7bc7"

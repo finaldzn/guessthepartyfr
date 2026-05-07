@@ -1,0 +1,14 @@
+{
+  "name": "dlp-stats-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker + D1 backend for Devine le parti crowd-stats",
+  "scripts": {
+    "dev":    "wrangler dev",
+    "deploy": "wrangler deploy",
+    "schema": "wrangler d1 execute dlp --remote --file schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.90.0"
+  }
+}
