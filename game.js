@@ -15,21 +15,25 @@ const STORAGE_KEY      = "dlp.state.v1";
 
 const $ = (id) => document.getElementById(id);
 const ui = {
-  card:    $("card"),
-  imgA:    $("img-front"),
-  imgB:    $("img-back"),
-  cap:     $("caption"),
-  who:     $("who"),
-  meta:    $("meta"),
-  choices: $("choices"),
-  bar:     $("bar"),
-  hint:    $("hint"),
-  recent:  $("recent"),
-  list:    $("recent-list"),
-  score:   $("m-score"),
-  streak:  $("m-streak"),
-  best:    $("m-best"),
-  reset:   $("m-reset"),
+  card:     $("card"),
+  imgA:     $("img-front"),
+  imgB:     $("img-back"),
+  cap:      $("caption"),
+  who:      $("who"),
+  meta:     $("meta"),
+  choices:  $("choices"),
+  bar:      $("bar"),
+  hint:     $("hint"),
+  recent:   $("recent"),
+  list:     $("recent-list"),
+  board:    $("board"),
+  boardList:$("board-list"),
+  toast:    $("toast"),
+  score:    $("m-score"),
+  streak:   $("m-streak"),
+  best:     $("m-best"),
+  share:    $("m-share"),
+  reset:    $("m-reset"),
 };
 
 let pool = [];
@@ -45,7 +49,7 @@ const state = restore();
 // ----- persistence -------------------------------------------------------
 
 function blank() {
-  return { score: 0, attempts: 0, streak: 0, best: 0, recent: [], byParty: {} };
+  return { score: 0, attempts: 0, streak: 0, best: 0, recent: [], runs: [], byParty: {} };
 }
 
 function restore() {
@@ -76,6 +80,64 @@ function paintScore(animate) {
     pop(ui.score);
     pop(ui.streak);
     if (state.streak > 0 && state.streak === state.best) pop(ui.best);
+  }
+}
+
+function paintBoard() {
+  const runs = (state.runs || []).slice(0, 3);
+  if (runs.length === 0) {
+    ui.board.hidden = true;
+    return;
+  }
+  ui.board.hidden = false;
+  ui.boardList.innerHTML = "";
+  for (const r of runs) {
+    const li = document.createElement("li");
+    li.className = "run";
+    const date = new Date(r.ts).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    li.innerHTML = `
+      <span class="run-len"></span>
+      <span class="run-label">d'affilée</span>
+      <span class="run-when"></span>`;
+    li.querySelector(".run-len").textContent  = r.length;
+    li.querySelector(".run-when").textContent = date;
+    ui.boardList.appendChild(li);
+  }
+}
+
+function recordRun() {
+  if (state.streak > 0) {
+    state.runs = state.runs || [];
+    state.runs.push({ length: state.streak, ts: Date.now() });
+    state.runs.sort((a, b) => b.length - a.length || b.ts - a.ts);
+    if (state.runs.length > 50) state.runs.length = 50;
+  }
+}
+
+function flashToast(msg) {
+  ui.toast.textContent = msg;
+  ui.toast.classList.add("show");
+  clearTimeout(flashToast._t);
+  flashToast._t = setTimeout(() => ui.toast.classList.remove("show"), 2200);
+}
+
+async function shareScore() {
+  const url  = location.origin + location.pathname.replace(/[^/]+$/, "");
+  const lead = state.attempts > 0
+    ? `Devine le parti — ${state.score}/${state.attempts}, record ${state.best} d'affilée`
+    : `Devine le parti — saurez-vous reconnaître les politiques français ?`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Devine le parti", text: lead, url });
+      return;
+    } catch (_) { /* user cancelled — fall through to clipboard */ }
+  }
+  try {
+    await navigator.clipboard.writeText(`${lead}\n${url}`);
+    flashToast("Score copié dans le presse-papier");
+  } catch (_) {
+    flashToast("Copie impossible — partagez l'URL manuellement");
   }
 }
 
@@ -186,6 +248,7 @@ function answer(party) {
     state.streak += 1;
     if (state.streak > state.best) state.best = state.streak;
   } else {
+    recordRun();
     state.streak = 0;
   }
 
@@ -217,6 +280,7 @@ function answer(party) {
 
   paintScore(true);
   paintRecent();
+  paintBoard();
   persist();
 
   ui.bar.style.setProperty("--ms", ADVANCE_DELAY_MS + "ms");
@@ -257,12 +321,16 @@ ui.reset.addEventListener("click", () => {
   persist();
   paintScore(false);
   paintRecent();
+  paintBoard();
 });
+
+ui.share.addEventListener("click", shareScore);
 
 // ----- boot -----------------------------------------------------------
 
 (async function () {
   paintScore(false);
   paintRecent();
+  paintBoard();
   if (await loadPool()) nextRound();
 })();
