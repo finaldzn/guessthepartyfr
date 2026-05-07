@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Devine le parti</title>
+  <meta name="description" content="Saurez-vous deviner le parti d'un député, sénateur ou eurodéputé français à partir de sa photo ?">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="logo">Devine le parti<a class="nav" href="stats.html">stats →</a></h1>
+    <div class="score">
+      <div class="metric"><span>Score</span><b id="m-score">0 / 0</b></div>
+      <div class="metric"><span>Série</span><b id="m-streak">0</b></div>
+      <div class="metric"><span>Record</span><b id="m-best">0</b></div>
+      <button id="m-reset" class="ghost" title="Tout remettre à zéro">Reset</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <article class="card" id="card">
+      <div class="frame">
+        <img id="img-front" class="portrait shown" alt="">
+        <img id="img-back"  class="portrait"       alt="">
+        <div class="caption" id="caption">
+          <div class="who" id="who"></div>
+          <div class="meta" id="meta"></div>
+        </div>
+      </div>
+
+      <div class="choices" id="choices">
+        <button class="party" data-party="Renaissance"            style="--c:#ECD42E;--ink:#1a1a1a">Renaissance</button>
+        <button class="party" data-party="Rassemblement National" style="--c:#1D2D52;--ink:#fff">Rassemblement National</button>
+        <button class="party" data-party="La France Insoumise"   style="--c:#D81E2D;--ink:#fff">La France Insoumise</button>
+        <button class="party" data-party="Les Républicains"       style="--c:#0066CC;--ink:#fff">Les Républicains</button>
+        <button class="party" data-party="Parti Socialiste"       style="--c:#E92F58;--ink:#fff">Parti Socialiste</button>
+        <button class="party" data-party="Les Écologistes"        style="--c:#00B070;--ink:#fff">Les Écologistes</button>
+      </div>
+
+      <div class="bar" id="bar"></div>
+    </article>
+
+    <p class="hint" id="hint">Chargement des candidats…</p>
+
+    <section class="recent" id="recent" hidden>
+      <h2>Derniers essais</h2>
+      <ul id="recent-list"></ul>
+    </section>
+
+    <footer class="legal">
+      Données ouvertes : Assemblée nationale (légis. 17), Sénat, Parlement européen.
+      Photos servies directement par leurs sites officiels.
+    </footer>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>

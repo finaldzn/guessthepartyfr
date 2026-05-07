@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stats · Devine le parti</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .page.stats { max-width: 720px; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.2rem;
+    }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: .65rem;
+      margin: 1.4rem 0 1.8rem;
+    }
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: 12px;
+      padding: .85rem 1rem;
+    }
+    .kpi small {
+      font-size: .65rem;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .kpi b {
+      display: block;
+      margin-top: .35rem;
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      font-variant-numeric: tabular-nums;
+    }
+    h2.section {
+      font-size: .76rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 1.6rem 0 .7rem;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 200px 1fr 60px;
+      gap: .75rem;
+      align-items: center;
+      padding: .55rem 0;
+    }
+    .row + .row { border-top: 1px solid #f0f0f3; }
+    .label {
+      font-weight: 700;
+      font-size: .92rem;
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+    }
+    .swatch {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      flex: 0 0 auto;
+    }
+    .track {
+      height: 9px;
+      background: #f0f0f3;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width .4s ease;
+    }
+    .pct {
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      text-align: right;
+      font-size: .92rem;
+    }
+    .empty {
+      color: var(--muted);
+      font-size: .9rem;
+      padding: .5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="logo">Devine le parti<a class="nav" href="index.html">jouer →</a></h1>
+  </header>
+
+  <main class="page stats">
+    <div class="kpis">
+      <div class="kpi"><small>Réponses</small><b id="k-attempts">0</b></div>
+      <div class="kpi"><small>Réussite</small><b id="k-rate">—</b></div>
+      <div class="kpi"><small>Série actuelle</small><b id="k-streak">0</b></div>
+      <div class="kpi"><small>Record</small><b id="k-best">0</b></div>
+    </div>
+
+    <h2 class="section">Réussite par parti</h2>
+    <div class="panel" id="byparty"><p class="empty">Pas encore de données — jouez quelques manches !</p></div>
+
+    <p class="legal">
+      Ces statistiques restent dans votre navigateur (<code>localStorage</code>).
+      Aucune donnée n'est envoyée à un serveur.
+    </p>
+  </main>
+
+  <script>
+    const COLORS = {
+      "Renaissance":            "#ECD42E",
+      "Rassemblement National": "#1D2D52",
+      "La France Insoumise":    "#D81E2D",
+      "Les Républicains":       "#0066CC",
+      "Parti Socialiste":       "#E92F58",
+      "Les Écologistes":        "#00B070",
+    };
+
+    const raw = (() => {
+      try { return JSON.parse(localStorage.getItem("dlp.state.v1")) || {}; }
+      catch { return {}; }
+    })();
+
+    const attempts = raw.attempts || 0;
+    const score    = raw.score    || 0;
+    document.getElementById("k-attempts").textContent = attempts;
+    document.getElementById("k-streak").textContent   = raw.streak || 0;
+    document.getElementById("k-best").textContent     = raw.best   || 0;
+    document.getElementById("k-rate").textContent     =
+      attempts ? Math.round(100 * score / attempts) + " %" : "—";
+
+    const byparty = raw.byParty || {};
+    const root = document.getElementById("byparty");
+    const parties = Object.keys(COLORS);
+
+    if (Object.values(byparty).reduce((a, b) => a + (b.seen || 0), 0) === 0) {
+      // leave the empty placeholder
+    } else {
+      root.innerHTML = "";
+      const ordered = parties
+        .map(p => ({ p, ...(byparty[p] || { seen: 0, ok: 0 }) }))
+        .sort((a, b) => (b.seen ? b.ok / b.seen : 0) - (a.seen ? a.ok / a.seen : 0));
+      for (const { p, seen, ok } of ordered) {
+        const pct = seen ? Math.round(100 * ok / seen) : 0;
+        const w = Math.min(100, pct / 80 * 100);
+        const div = document.createElement("div");
+        div.className = "row";
+        div.innerHTML = `
+          <div class="label"><span class="swatch" style="background:${COLORS[p]}"></span>${p}</div>
+          <div class="track"><div class="fill" style="width:${w}%;background:${COLORS[p]}"></div></div>
+          <div class="pct">${seen ? pct + " %" : "—"}</div>`;
+        root.appendChild(div);
+      }
+    }
+  </script>
+</body>
+</html>
