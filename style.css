@@ -285,6 +285,79 @@ body {
 .entry.ok  .badge::before { content: "✓"; }
 .entry.no  .badge::before { content: "✕"; }
 
+/* ----- crowd breakdown ----- */
+
+.crowd {
+  border-top: 1px solid var(--hairline);
+  padding: .9rem 1rem 1.05rem;
+  animation: slip .3s ease;
+}
+.crowd-title {
+  margin: 0 0 .65rem;
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  display: flex;
+  align-items: baseline;
+  gap: .45rem;
+}
+.crowd-count {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: #b3b3bb;
+}
+.crowd-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+.cb {
+  display: grid;
+  grid-template-columns: 130px 1fr 42px;
+  align-items: center;
+  gap: .55rem;
+  font-size: .82rem;
+}
+.cb-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: var(--text);
+}
+.cb-track {
+  position: relative;
+  height: 8px;
+  background: #f0f0f3;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.cb-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 99px;
+  transition: width .55s cubic-bezier(.2,.8,.2,1);
+}
+.cb-pct {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+  color: var(--muted);
+}
+.cb-actual .cb-name { color: var(--good); }
+.cb-actual .cb-name::after {
+  content: " ✓";
+  font-weight: 800;
+}
+.cb-actual .cb-pct { color: var(--good); }
+
 /* ----- scoreboard (top runs) ----- */
 
 .board { margin-top: 2.4rem; }
